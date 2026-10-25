@@ -1,0 +1,52 @@
+name: OnlySell Telegram Intraday Alerts
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 15 minutes, weekdays. UTC 04:00-10:45 is approximately 09:30-16:15 IST.
+    - cron: "*/15 4-10 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: onlysell-intraday-alerts
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -u alert.py
+
+      - name: Save fresh-signal history
+        if: success()
+        run: |
+          if [ -f signal_state.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add signal_state.json
+            if ! git diff --cached --quiet; then
+              git commit -m "Update sent signal history [skip ci]"
+              git push origin "HEAD:${GITHUB_REF_NAME}"
+            fi
+          fi
