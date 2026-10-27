@@ -4,7 +4,7 @@ name: OnlySell Telegram Intraday Alerts
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/15 4-10 * * 1-5"
+    - cron: "*/15 3-10 * * 1-5"
 
 permissions:
   contents: write
@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
